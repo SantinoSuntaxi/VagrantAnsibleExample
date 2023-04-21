@@ -1,0 +1,67 @@
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: Probar conexion  con la VM 
+    ping:
+# Instalacion de los paquetes necesarios para Wordpress
+  - name: Instalacion web server y paquetes necesarios
+    apt:
+      name:
+      - apache2
+      - mariadb-server
+      - libapache2-mod-php
+      - php-mysql
+      - python3-mysqldb
+      state: latest
+      # Crear carpeta donde se aloja el front
+
+  - name: Crear carpeta donde se aloja el front
+    file: 
+      path: /var/www/html/
+      state: directory
+      owner: 'www-data'
+      group: 'www-data'
+      mode: 0755
+      # Descargar y descomprimir Wordpress
+  - name: Descargar y descomprimir la ultima version de Wordpress 
+    unarchive:
+      src: https://wordpress.org/latest.tar.gz
+      dest: /var/www/html/
+      remote_src: yes
+      extra_opts: [--strip-components=1]
+      
+
+  # Configurar Apache
+  - name: Configurar Apache 
+    replace:
+        dest='/etc/apache2/mods-available/dir.conf'
+        regexp='DirectoryIndex index.html index.cgi index.pl index.php index.xhtml index.htm'
+        replace='DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm' 
+  
+  #Reiniciar Apache server service
+  - name: Reiniciar service apache2
+    service:
+        name: apache2
+        state: restarted
+
+  # Crear MariaDB base de datos
+  - name: Crear base de datos  para WordPress
+    mysql_db:
+        name: wp
+        login_user: root
+        login_password: root
+        state: present
+ 
+  
+# Crear MariaDB User
+  - name: Crear usuario MariaDB usuario for WordPress
+    mysql_user:
+      login_user: root
+      login_password: root
+      name: wpuser
+      password: wppassword
+      priv: 'wp.*:ALL'
+      state: present
+
+ 
